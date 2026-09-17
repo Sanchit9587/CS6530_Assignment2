@@ -2,13 +2,8 @@
 
 import sys
 import os
-import transport
-
-# Resolve the listener dynamically so static analyzers do not reject a
-# symbol that may be provided by the local transport implementation.
-start_listener = transport.__dict__["start_listener"]
-send_message = transport.send_message
-receive_message = transport.receive_message
+import socket
+from transport import send_message, receive_message
 import crypto_utils
 
 ALICE_ID = "CE24B107"  # Replace with actual roll number, must match Alice's
@@ -21,8 +16,17 @@ def run_bob(port: int = 5000):
     alice_lt_pub = crypto_utils.load_public_key(os.path.join(keys_dir, "alice_lt_public.pem"))
 
     print(f"Bob: Waiting on TCP port {port}...")
-    sock = start_listener(port)
-    print("Bob: Alice connected!\n")
+    
+    # Native socket setup without modifying transport.py
+    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_sock.bind(("0.0.0.0", port))
+    server_sock.listen(1)
+    
+    sock, addr = server_sock.accept()
+    server_sock.close()  # Close listening server socket once connected
+    
+    print(f"Bob: Connected to Alice from {addr[0]}:{addr[1]}!\n")
 
     # --- FR-2: Receive M1 ---
     m1 = crypto_utils.deserialize_message(receive_message(sock))
