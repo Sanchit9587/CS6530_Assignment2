@@ -1,12 +1,14 @@
 # crypto_utils.py
-
+import hmac, hashlib
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
 import os
 import json
 import hashlib
 from typing import cast
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
-from cryptography.hazmat.primitives.kdf.hkdf import HKDFExtract, HKDFExpand
+from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
 
 PROTOCOL_ID = b"CS6530-A2-v1"  # 12 bytes ASCII
 
@@ -113,8 +115,7 @@ def derive_traffic_keys(shared_secret: bytes, transcript_hash: bytes) -> tuple[b
         K_Bob_to_Alice = HKDF-Expand(PRK, info = "CS6530-A2 Bob->Alice", L = 32)
     """
     # Step 1: HKDF-Extract
-    hkdf_extract = HKDFExtract(algorithm=hashes.SHA256(), salt=transcript_hash)
-    prk = hkdf_extract.derive(shared_secret)
+    prk = hmac.new(transcript_hash, shared_secret, hashlib.sha256).digest()
 
     # Step 2: HKDF-Expand (Alice -> Bob)
     hkdf_expand_a2b = HKDFExpand(algorithm=hashes.SHA256(), length=32, info=b"CS6530-A2 Alice->Bob")
