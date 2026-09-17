@@ -14,7 +14,7 @@ def run_alice(bob_ip: str, port: int = 5000):
     alice_lt_priv = crypto_utils.load_private_key(os.path.join(keys_dir, "alice_lt_private.pem"))
     bob_lt_pub = crypto_utils.load_public_key(os.path.join(keys_dir, "bob_lt_public.pem"))
 
-    print("Alice: Connecting to Bob...")
+    print(f"Alice: Connecting to Bob at {bob_ip}:{port}...")
     sock = connect_to_peer(bob_ip, port)
     print("Alice: Connected to Bob.\n")
 
@@ -75,10 +75,60 @@ def run_alice(bob_ip: str, port: int = 5000):
     print(f"[Key Derivation] K_Alice_to_Bob: {k_alice_to_bob.hex()}")
     print(f"[Key Derivation] K_Bob_to_Alice: {k_bob_to_alice.hex()}\n")
 
-    return sock, k_alice_to_bob, k_bob_to_alice, alice_sid, bob_sid
+    # --- TR-1: Normal Authenticated Data Exchange ---
+    print("--- Starting TR-1 Data Exchange ---")
+    
+    send_counter = 0
+    recv_counter = 0
+
+    # Alice sends 3 messages
+    for i in range(3):
+        msg = f"Hello Bob, this is Alice's secure message {i}".encode('utf-8')
+        
+        # Encrypt with K_Alice_to_Bob
+        ciphertext = crypto_utils.encrypt_record(
+            key=k_alice_to_bob, plaintext=msg, sender_id=ALICE_ID, receiver_id=BOB_ID,
+            alice_sid=alice_sid, bob_sid=bob_sid, counter=send_counter
+        )
+        
+        payload = {"ciphertext": ciphertext.hex(), "counter": send_counter}
+        send_message(sock, crypto_utils.serialize_message(payload))
+        print(f"Alice: Sent AEAD record (Counter={send_counter})")
+        send_counter += 1
+
+    # Alice receives 3 messages
+    for i in range(3):
+        payload = crypto_utils.deserialize_message(receive_message(sock))
+        received_ciphertext = bytes.fromhex(payload["ciphertext"])
+        
+        if payload["counter"] != recv_counter:
+            print(f"FATAL: Replay/Out-of-order detected. Expected {recv_counter}, got {payload['counter']}")
+            sock.close()
+            sys.exit(1)
+
+        try:
+            # Decrypt with K_Bob_to_Alice
+            plaintext = crypto_utils.decrypt_record(
+                key=k_bob_to_alice, ciphertext_and_tag=received_ciphertext,
+                sender_id=BOB_ID, receiver_id=ALICE_ID, 
+                alice_sid=alice_sid, bob_sid=bob_sid, counter=recv_counter
+            )
+            print(f"Alice: <- Validated & Decrypted record (Counter={recv_counter}): {plaintext.decode()}")
+            recv_counter += 1
+        except Exception as e:
+            print(f"FATAL: AEAD Verification Failed! {e}")
+            sock.close()
+            sys.exit(1)
+
+    print("\n[TR-1 SUCCESS] All 6 protected records successfully exchanged and verified.")
+    sock.close()
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python alice.py <Bob-IP>")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Usage: python alice.py <Bob-IP> [Port]")
         sys.exit(1)
-    run_alice(sys.argv[1])
+        
+    bob_ip = sys.argv[1]
+    port = int(sys.argv[2]) if len(sys.argv) == 3 else 5000
+    
+    run_alice(bob_ip, port)

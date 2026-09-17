@@ -1,14 +1,15 @@
 # crypto_utils.py
-import hmac, hashlib
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
+
 import os
 import json
+import struct
 import hashlib
+import hmac
 from typing import cast
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 PROTOCOL_ID = b"CS6530-A2-v1"  # 12 bytes ASCII
 
@@ -114,7 +115,7 @@ def derive_traffic_keys(shared_secret: bytes, transcript_hash: bytes) -> tuple[b
         K_Alice_to_Bob = HKDF-Expand(PRK, info = "CS6530-A2 Alice->Bob", L = 32)
         K_Bob_to_Alice = HKDF-Expand(PRK, info = "CS6530-A2 Bob->Alice", L = 32)
     """
-    # Step 1: HKDF-Extract
+    # Step 1: HKDF-Extract (Manual HMAC extraction)
     prk = hmac.new(transcript_hash, shared_secret, hashlib.sha256).digest()
 
     # Step 2: HKDF-Expand (Alice -> Bob)
@@ -126,3 +127,35 @@ def derive_traffic_keys(shared_secret: bytes, transcript_hash: bytes) -> tuple[b
     k_bob_to_alice = hkdf_expand_b2a.derive(prk)
 
     return k_alice_to_bob, k_bob_to_alice
+
+# --- FR-5 & FR-6 Protected Communication Helpers ---
+
+def build_nonce(counter: int) -> bytes:
+    """Construct 96-bit nonce: 0x00000000 || uint64_be(counter)."""
+    return b"\x00\x00\x00\x00" + struct.pack("!Q", counter)
+
+def build_aad(sender_id: str, receiver_id: str, alice_sid: bytes, bob_sid: bytes, counter: int) -> bytes:
+    """Construct Sender_ID || Receiver_ID || Alice_SID || Bob_SID || Message_Counter."""
+    return (
+        sender_id.encode('ascii') +
+        receiver_id.encode('ascii') +
+        alice_sid +
+        bob_sid +
+        struct.pack("!Q", counter)
+    )
+
+def encrypt_record(key: bytes, plaintext: bytes, sender_id: str, receiver_id: str, 
+                   alice_sid: bytes, bob_sid: bytes, counter: int) -> bytes:
+    """Encrypt using AES-256-GCM. Returns ciphertext || tag."""
+    aesgcm = AESGCM(key)
+    nonce = build_nonce(counter)
+    aad = build_aad(sender_id, receiver_id, alice_sid, bob_sid, counter)
+    return aesgcm.encrypt(nonce, plaintext, aad)
+
+def decrypt_record(key: bytes, ciphertext_and_tag: bytes, sender_id: str, receiver_id: str, 
+                   alice_sid: bytes, bob_sid: bytes, counter: int) -> bytes:
+    """Decrypt using AES-256-GCM. Raises exception if tag/AAD/counter is invalid."""
+    aesgcm = AESGCM(key)
+    nonce = build_nonce(counter)
+    aad = build_aad(sender_id, receiver_id, alice_sid, bob_sid, counter)
+    return aesgcm.decrypt(nonce, ciphertext_and_tag, aad)
