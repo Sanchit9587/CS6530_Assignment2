@@ -1,0 +1,54 @@
+======================================================================
+TR-4  FORWARD SECRECY EXPERIMENT
+======================================================================
+
+[PHASE 1] Running session S1
+[alice] SEND  ctr=0 nonce=000000000000000000000000 aad=435332344230303143533234423030328109340a564cd3ffc48b497eaad000d0f74af88d515854c8bb76118066a1a58d0000000000000000 ct=e3db36d904f5daf33918206eaff217fa... (63B)  SUCCESS
+[bob] RECV  ctr=0 nonce=000000000000000000000000 aad=435332344230303143533234423030328109340a564cd3ffc48b497eaad000d0f74af88d515854c8bb76118066a1a58d0000000000000000 plaintext=b'S1 confidential payload -- must stay unreadable'  SUCCESS
+
+[ATTACKER] recorded handshake + 63-byte ciphertext
+
+[PHASE 2] Discarding ephemeral and session secrets (FR-7)
+[alice] traffic keys discarded (FR-7)
+[bob] traffic keys discarded (FR-7)
+    ephemeral X25519 private keys, shared secret and traffic keys: gone
+
+[PHASE 3] Attacker compromises Alice's long-term Ed25519 private key
+    stolen LT private key = 4c0b487e02776131286eae80f804d2d5... (32 bytes)
+
+    Attempting to reconstruct S1 traffic keys from it...
+    - Ed25519 is a SIGNATURE key. It has no Diffie-Hellman operation.
+    - The traffic keys came from HKDF(X25519(a_eph, B_eph)).
+    - Neither ephemeral private key is derivable from the LT key,
+      and both were destroyed in Phase 2.
+    - Recovering a_eph from the recorded public key is the discrete
+      log problem on Curve25519.
+
+    >>> RECONSTRUCTION FAILED -- S1 remains confidential.  SUCCESS
+
+[PHASE 4] Controlled comparison: attacker instead has the OLD
+          ephemeral X25519 private key (i.e. Phase 2 never happened)
+    recovered plaintext: b'S1 confidential payload -- must stay unreadable'
+    >>> RECOVERY SUCCEEDED -- confirms the ephemeral key, not the
+        long-term key, is what protects past traffic.
+
+======================================================================
+TR-4 RESULT
+======================================================================
+
+Forward secrecy holds because the session keys depend only on ephemeral
+X25519 secrets that exist for one session and are then destroyed. The
+long-term Ed25519 key authenticates WHO sent the ephemeral public keys;
+it never contributes entropy to the keys themselves.
+
+So an attacker who records traffic today and steals the identity key
+tomorrow gains the ability to IMPERSONATE Alice in future sessions, but
+gains nothing against past ones. Phase 4 isolates the variable: the same
+ciphertext falls immediately to the ephemeral private key, proving the
+Phase 3 failure is due to the deletion of that specific secret and not to
+any accident of the setup.
+
+Contrast with static RSA key transport, where the long-term key decrypts
+the premaster secret: there, one key compromise retroactively opens every
+recorded session.
+

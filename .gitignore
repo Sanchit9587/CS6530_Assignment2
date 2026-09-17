@@ -1,2 +1,7 @@
+keys/*.pem
+!keys/*_public.pem
+__pycache__/
+venv/
+.DS_Store
 __pycache__/
 venv/
