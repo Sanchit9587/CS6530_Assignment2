@@ -1,0 +1,17 @@
+Bob: Waiting on TCP port 5000...
+Bob: Connected to Alice from 10.42.58.225:47434!
+
+Bob: <- Received M1
+Bob: Sent M2 ->
+[Transcript Hash]: dbb5b5b31dcd71c8d9c001d44f1f4404474692897d39c3e2e4759f184303e069
+Bob: <- Received M3 (Alice Signature)
+Bob: Sent M4 (Bob Signature) ->
+
+[SUCCESS] Bob: Handshake authenticated successfully!
+[Key Derivation] Shared Secret:  5b90e0e5e38e035e3849f6d18ed9914b3cf9c9006072f7c2a6ed2fd0f3d0b072
+[Key Derivation] K_Alice_to_Bob: 9d62d890b5f636bc93f00354998433054a3ac789e00462b2c90f04c5883cc7cf
+[Key Derivation] K_Bob_to_Alice: 9aae94ee4dd62c063fa68cc7098836b2900a59b1c06608e4e4adf3b8686e5e31
+
+--- Starting TR-1 Data Exchange ---
+Bob: <- Validated & Decrypted record (Counter=0): Hello Bob, this is Alice's secure message 0
+FATAL: Replay/Out-of-order detected. Expected 1, got 0

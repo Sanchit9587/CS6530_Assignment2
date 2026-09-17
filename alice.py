@@ -121,6 +121,11 @@ def run_alice(bob_ip: str, port: int = 5000):
             sys.exit(1)
 
     print("\n[TR-1 SUCCESS] All 6 protected records successfully exchanged and verified.")
+    alice_ephem_priv = None
+    shared_secret = None
+    k_alice_to_bob = None
+    k_bob_to_alice = None
+    print("[FR-7] Ephemeral private key, shared secret and traffic keys discarded.")
     sock.close()
 
 if __name__ == "__main__":
