@@ -1,0 +1,41 @@
+======================================================================
+TR-3  REPLAY EXPERIMENT
+Alice_SID = c7ecd96c9c4db32bf42c9e7ba271cdab
+Bob_SID   = 9244eca4f794bb8fd4c7a431bc7d0bb9
+======================================================================
+
+[1] Alice sends application record at counter 0
+[alice] SEND  ctr=0 nonce=000000000000000000000000 aad=43533234423030314353323442303032c7ecd96c9c4db32bf42c9e7ba271cdab9244eca4f794bb8fd4c7a431bc7d0bb90000000000000000 ct=b54d6bf5230fb47da1e1e017d75e8c82... (43B)  SUCCESS
+
+[*] MALLORY captures the record verbatim (43 bytes)
+
+[2] Bob receives the original record
+[bob] RECV  ctr=0 nonce=000000000000000000000000 aad=43533234423030314353323442303032c7ecd96c9c4db32bf42c9e7ba271cdab9244eca4f794bb8fd4c7a431bc7d0bb90000000000000000 plaintext=b'transfer 1000 to account 42'  SUCCESS
+    Bob now expects counter = 1
+
+[3] MALLORY replays the identical record (no modification)
+[bob] RECV  expected ctr=1 -> REJECTED (stale counter or bad tag)
+
+======================================================================
+RESULT: replay REJECTED -- stale counter. TR-3 PASSED
+======================================================================
+
+WHY THE REPLAY STILL HAS A VALID GCM TAG
+----------------------------------------
+The replayed bytes are bit-identical to a record Alice genuinely produced,
+so the tag over (nonce_0, AAD_0, ciphertext) is still arithmetically valid.
+AES-GCM proves authenticity and integrity -- that the holder of the key
+produced this ciphertext, unmodified -- but it says nothing about WHEN, or
+how many times. Nothing inside the record itself distinguishes a first
+delivery from a thousandth.
+
+Freshness is therefore not a property of the AEAD; it is a property of the
+receiver's state. Bob rejects the replay only because he remembers that
+counter 0 has already been consumed and he now expects counter 1. He
+computes nonce and AAD from the EXPECTED counter (1), so the replayed
+record -- sealed under counter 0 -- fails verification against them.
+
+This is why FR-6 requires explicit replay state: strip the counter out and
+the protocol keeps perfect confidentiality and integrity while losing all
+resistance to replay.
+
