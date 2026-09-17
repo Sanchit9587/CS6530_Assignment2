@@ -2,43 +2,29 @@
 
 import subprocess
 import sys
-import time
 
-def run_tr1():
-    print("=== TR-1: Normal Authenticated Session Test ===")
+def run_tr1(bob_ip: str, port: int = 5000):
+    print(f"=== TR-1: Normal Authenticated Session Test ===")
+    print(f"Targeting Bob at {bob_ip}:{port}...\n")
     
-    # 1. Start Bob listener on port 5000
-    print("[Launcher] Starting Bob on port 5000...")
-    bob_process = subprocess.Popen(
-        [sys.executable, "bob.py"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
-    )
+    # Launch Alice directly against Bob's IP
+    cmd = [sys.executable, "alice.py", bob_ip, str(port)]
     
-    time.sleep(1)  # Ensure socket is bound
-    
-    # 2. Start Alice connecting to Bob
-    print("[Launcher] Starting Alice connecting to 127.0.0.1:5000...")
-    alice_process = subprocess.Popen(
-        [sys.executable, "alice.py", "127.0.0.1"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
-    )
-    
-    alice_out, _ = alice_process.communicate()
-    bob_out, _ = bob_process.communicate()
-
-    print("\n--- Alice Output ---")
-    print(alice_out)
-    print("--- Bob Output ---")
-    print(bob_out)
-
-    if alice_process.returncode == 0 and bob_process.returncode == 0:
-        print("\n[SUCCESS] TR-1 Passed: Normal authenticated session completed.")
-    else:
-        print("\n[FAILURE] TR-1 Failed: Session aborted unexpectedly.")
+    try:
+        result = subprocess.run(cmd, check=True)
+        print("\n[SUCCESS] TR-1 Passed: Authenticated session and data exchange completed with Bob.")
+    except subprocess.CalledProcessError as e:
+        print(f"\n[FAILURE] TR-1 Failed: Session aborted or connection error (Exit code: {e.returncode}).")
+    except Exception as e:
+        print(f"\n[ERROR] Could not execute Alice script: {e}")
 
 if __name__ == "__main__":
-    run_tr1()
+    if len(sys.argv) < 2:
+        print("Usage: python experiments/test_tr1_normal.py <BOB_IP> [PORT]")
+        print("Example: python experiments/test_tr1_normal.py 192.168.1.15 5000")
+        sys.exit(1)
+        
+    target_ip = sys.argv[1]
+    target_port = int(sys.argv[2]) if len(sys.argv) > 2 else 5000
+    
+    run_tr1(target_ip, target_port)
