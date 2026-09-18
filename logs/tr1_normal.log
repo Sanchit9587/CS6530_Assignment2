@@ -1,0 +1,24 @@
+Bob: Waiting on TCP port 5000...
+Bob: Connected to Alice from 127.0.0.1:55623!
+
+Bob: <- Received M1
+Bob: Sent M2 ->
+[Transcript Hash]: df338e0e814adaa8560d9d6054646389e35e7ed6346ba550caf430411498c888
+Bob: <- Received M3 (Alice Signature)
+Bob: Sent M4 (Bob Signature) ->
+
+[SUCCESS] Bob: Handshake authenticated successfully!
+[Key Derivation] Shared Secret:  d01a630b12ff14bd080db74475442d712a3c47306d9eec504969c3b15dce1712
+[Key Derivation] K_Alice_to_Bob: dc1ef92939bfad9e3e9c94dfa23bf2c449119099320764b042fdd1f2a59a60c9
+[Key Derivation] K_Bob_to_Alice: cafadb40f23d7cf9590be8682020efcd32a04357e411fb6f6a42db952ae417d6
+
+--- Starting TR-1 Data Exchange ---
+Bob: <- Validated & Decrypted record (Counter=0): Hello Bob, this is Alice's secure message 0
+Bob: <- Validated & Decrypted record (Counter=1): Hello Bob, this is Alice's secure message 1
+Bob: <- Validated & Decrypted record (Counter=2): Hello Bob, this is Alice's secure message 2
+Bob: Sent AEAD record (Counter=0)
+Bob: Sent AEAD record (Counter=1)
+Bob: Sent AEAD record (Counter=2)
+
+[TR-1 SUCCESS] All 6 protected records successfully exchanged and verified.
+[FR-7] Ephemeral private key, shared secret and traffic keys discarded.

@@ -1,0 +1,24 @@
+Alice: Connecting to Bob at 127.0.0.1:5000...
+Alice: Connected to Bob.
+
+Alice: Sent M1 ->
+Alice: <- Received M2
+[Transcript Hash]: a521dd8a1b81a8d59f42afdb2ffd4651cf98f8836fc6c13f520d26d9d1a0fbfc
+Alice: Sent M3 (Alice Signature) ->
+Alice: <- Received M4 (Bob Signature)
+
+[SUCCESS] Alice: Handshake authenticated successfully!
+[Key Derivation] Shared Secret:  1feea8f5f1a5b3e059ba48e54786f3164fd7406f85cb2e0ac3adf9e84c48f319
+[Key Derivation] K_Alice_to_Bob: 600716873cdad7d070a1a1ed7e7f179c6287778855d344eefd6319fcfb51fd32
+[Key Derivation] K_Bob_to_Alice: adca6e552b91f416ef963cee303b94d5618a232a18ebf0c3b6fa0c396b8e6b22
+
+--- Starting TR-1 Data Exchange ---
+Alice: Sent AEAD record (Counter=0)
+Alice: Sent AEAD record (Counter=1)
+Alice: Sent AEAD record (Counter=2)
+Alice: <- Validated & Decrypted record (Counter=0): Hello Alice, this is Bob's secure reply 0
+Alice: <- Validated & Decrypted record (Counter=1): Hello Alice, this is Bob's secure reply 1
+Alice: <- Validated & Decrypted record (Counter=2): Hello Alice, this is Bob's secure reply 2
+
+[TR-1 SUCCESS] All 6 protected records successfully exchanged and verified.
+[FR-7] Ephemeral private key, shared secret and traffic keys discarded.
